@@ -24,9 +24,23 @@ document.addEventListener('DOMContentLoaded', () => {
 	const audio = new Audio(audioSrc);
 	audio.preload = 'auto';
 	audio.loop = true;
-	// 初始化音量：优先使用已保存值
+	// 初始化音量：优先使用已保存值；默认 50%
 	const savedVolume = Number(localStorage.getItem(LS_KEYS.volume));
-	audio.volume = isFinite(savedVolume) && savedVolume >= 0 && savedVolume <= 100 ? Math.min(Math.max(savedVolume, 0), 100) / 100 : 0.7;
+	audio.volume = isFinite(savedVolume) && savedVolume >= 0 && savedVolume <= 100 ? Math.min(Math.max(savedVolume, 0), 100) / 100 : 0.5;
+
+	// 若已保存为 0，则在首次播放前提升到 50%
+	const ensureMinimumVolumeBeforePlay = () => {
+		const volStr = localStorage.getItem(LS_KEYS.volume);
+		const volNum = Number(volStr);
+		if (!isFinite(volNum) || volNum <= 0) {
+			const newVol = 50;
+			audio.volume = newVol / 100;
+			try { localStorage.setItem(LS_KEYS.volume, String(newVol)); } catch {}
+			if (volumeSlider) {
+				volumeSlider.value = String(newVol);
+			}
+		}
+	};
 
 	let userInteracted = false;
 
@@ -57,6 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 		playBtn?.addEventListener('click', () => {
 			userInteracted = true;
+			ensureMinimumVolumeBeforePlay();
 			updateVolumeFromSlider();
 			audio.play().catch(() => {
 				// 如果播放失败（如浏览器限制），保持暂停状态
@@ -81,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		<button type="button" class="music-toggle">暂停</button>
 		<label class="music-volume-label">
 			音量
-			<input type="range" min="0" max="100" value="70" class="music-volume" aria-label="背景音乐音量">
+			<input type="range" min="0" max="100" value="50" class="music-volume" aria-label="背景音乐音量">
 		</label>
 	`;
 
@@ -114,6 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
 			userInteracted = true;
 		}
 		if (audio.paused) {
+			ensureMinimumVolumeBeforePlay();
 			updateVolumeFromSlider();
 		audio.play().catch(() => {
 				// 播放失败时保持暂停
@@ -158,6 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		}
 		if (wasPlaying) {
 			// 由于用户此前已交互，大多浏览器允许后续自动播放
+			ensureMinimumVolumeBeforePlay();
 			audio.play().catch(() => {
 				// 若仍被阻止，用户可点击控制按钮恢复
 			});
