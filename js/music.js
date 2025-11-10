@@ -18,24 +18,24 @@ document.addEventListener('DOMContentLoaded', () => {
 	// 仅在首页显示弹窗：支持 index.html 或根路径
 	const path = (location && location.pathname) || '';
 	const isHome = /\/(index\.html)?$/.test(path);
-	const storedConsent = localStorage.getItem(LS_KEYS.consent);
+	const storedConsent = sessionStorage.getItem(LS_KEYS.consent);
 	const shouldShowModal = isHome && storedConsent == null;
 
 	const audio = new Audio(audioSrc);
 	audio.preload = 'auto';
 	audio.loop = true;
 	// 初始化音量：优先使用已保存值；默认 50%
-	const savedVolume = Number(localStorage.getItem(LS_KEYS.volume));
+	const savedVolume = Number(sessionStorage.getItem(LS_KEYS.volume));
 	audio.volume = isFinite(savedVolume) && savedVolume >= 0 && savedVolume <= 100 ? Math.min(Math.max(savedVolume, 0), 100) / 100 : 0.5;
 
 	// 若已保存为 0，则在首次播放前提升到 50%
 	const ensureMinimumVolumeBeforePlay = () => {
-		const volStr = localStorage.getItem(LS_KEYS.volume);
+		const volStr = sessionStorage.getItem(LS_KEYS.volume);
 		const volNum = Number(volStr);
 		if (!isFinite(volNum) || volNum <= 0) {
 			const newVol = 50;
 			audio.volume = newVol / 100;
-			try { localStorage.setItem(LS_KEYS.volume, String(newVol)); } catch {}
+			try { sessionStorage.setItem(LS_KEYS.volume, String(newVol)); } catch {}
 			if (volumeSlider) {
 				volumeSlider.value = String(newVol);
 			}
@@ -78,14 +78,14 @@ document.addEventListener('DOMContentLoaded', () => {
 				toggleBtn.textContent = '播放';
 			});
 			toggleBtn.textContent = '暂停';
-			localStorage.setItem(LS_KEYS.consent, 'granted');
+			sessionStorage.setItem(LS_KEYS.consent, 'granted');
 			closeModal();
 		});
 
 		denyBtn?.addEventListener('click', () => {
 			userInteracted = true;
 			toggleBtn.textContent = '播放';
-			localStorage.setItem(LS_KEYS.consent, 'denied');
+			sessionStorage.setItem(LS_KEYS.consent, 'denied');
 			closeModal();
 		});
 	};
@@ -112,7 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		const value = Number(volumeSlider.value || 0);
 		const clamped = Math.min(Math.max(value, 0), 100);
 		audio.volume = clamped / 100;
-		try { localStorage.setItem(LS_KEYS.volume, String(clamped)); } catch {}
+		try { sessionStorage.setItem(LS_KEYS.volume, String(clamped)); } catch {}
 	};
 
 	volumeSlider?.addEventListener('input', () => {
@@ -146,8 +146,8 @@ document.addEventListener('DOMContentLoaded', () => {
 	// 页面卸载前保存播放状态与进度
 	const persistPlaybackState = () => {
 		try {
-			localStorage.setItem(LS_KEYS.wasPlaying, audio.paused ? '0' : '1');
-			localStorage.setItem(LS_KEYS.currentTime, String(Math.floor(audio.currentTime || 0)));
+			sessionStorage.setItem(LS_KEYS.wasPlaying, audio.paused ? '0' : '1');
+			sessionStorage.setItem(LS_KEYS.currentTime, String(Math.floor(audio.currentTime || 0)));
 		} catch {}
 	};
 	window.addEventListener('beforeunload', persistPlaybackState);
@@ -167,8 +167,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 	// 自动恢复播放（在用户已同意的情况下）
 	if (storedConsent === 'granted') {
-		const wasPlaying = localStorage.getItem(LS_KEYS.wasPlaying) === '1';
-		const resumeAt = Number(localStorage.getItem(LS_KEYS.currentTime));
+		const wasPlaying = sessionStorage.getItem(LS_KEYS.wasPlaying) === '1';
+		const resumeAt = Number(sessionStorage.getItem(LS_KEYS.currentTime));
 		if (isFinite(resumeAt) && resumeAt > 0) {
 			try { audio.currentTime = resumeAt; } catch {}
 		}
